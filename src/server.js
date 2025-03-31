@@ -1,10 +1,17 @@
-const http = require('http');
+const express = require('express');
+const path = require('path');
+const app = express();
 
-const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Servidor rodando!\n');
+// Configurar o Pug (antigo Jade) como motor de visualização
+app.set('view engine', 'pug'); // A partir do Pug, não mais do Jade
+app.set('views', path.join(__dirname, 'views')); // Diretório de views
+
+// Definindo uma rota para renderizar o index.jade (ou index.pug)
+app.get('/', (req, res) => {
+    res.render('index', { title: 'Página Inicial' }); // Passando o título
 });
 
-server.listen(3000, () => {
+// Rodando o servidor na porta 3000
+app.listen(3000, () => {
     console.log('Servidor rodando na porta 3000');
 });
