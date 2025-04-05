@@ -1,28 +1,37 @@
-const pool = require('../configs/database'); // Certifique-se de ter uma conexão configurada
+const connection = require('../configs/database'); // ajusta o caminho se precisar
 
 exports.getAll = async () => {
-    const [rows] = await pool.query('SELECT * FROM clientes');
+    const [rows] = await connection.execute('SELECT * FROM clientes');
     return rows;
 };
 
-exports.create = async (cliente) => {
-    const { nome, sobrenome, email, idade } = cliente;
-    const [result] = await pool.query(
+exports.create = async ({ nome, sobrenome, email, idade }) => {
+    if (!nome || !sobrenome || !email || !idade) {
+        throw new Error("Todos os campos são obrigatórios!");
+    }
+
+    const idadeNum = Number(idade);
+    if (isNaN(idadeNum) || idadeNum <= 0 || idadeNum >= 100) {
+        throw new Error("Idade deve ser um número entre 1 e 99.");
+    }
+
+    const [result] = await connection.execute(
         'INSERT INTO clientes (nome, sobrenome, email, idade) VALUES (?, ?, ?, ?)',
-        [nome, sobrenome, email, idade]
+        [nome, sobrenome, email, idadeNum]
     );
-    return { id: result.insertId, ...cliente };
+
+    return { id: result.insertId, nome, sobrenome, email, idade: idadeNum };
 };
 
-exports.update = async (id, cliente) => {
-    const { nome, sobrenome, email, idade } = cliente;
-    await pool.query(
-        'UPDATE clientes SET nome=?, sobrenome=?, email=?, idade=? WHERE id=?',
+
+exports.update = async (id, { nome, sobrenome, email, idade }) => {
+    await connection.execute(
+        'UPDATE clientes SET nome = ?, sobrenome = ?, email = ?, idade = ? WHERE id = ?',
         [nome, sobrenome, email, idade, id]
     );
-    return { id, ...cliente };
+    return { id, nome, sobrenome, email, idade };
 };
 
 exports.remove = async (id) => {
-    await pool.query('DELETE FROM clientes WHERE id=?', [id]);
+    await connection.execute('DELETE FROM clientes WHERE id = ?', [id]);
 };

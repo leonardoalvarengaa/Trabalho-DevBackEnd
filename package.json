@@ -4,6 +4,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.js",
+    "lint": "eslint . --ignore-pattern node_modules/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,19 +12,29 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@shadcn/ui": "^0.0.4",
+    "axios": "^1.8.4",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "debug": "^4.4.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "http-errors": "^2.0.0",
-    "jade": "^1.11.0",
     "morgan": "^1.10.0",
     "mysql2": "^3.14.0",
-    "pug": "^3.0.3"
+    "pug": "^3.0.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "vite": "^6.2.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "autoprefixer": "^10.4.21",
     "eslint": "^9.23.0",
     "eslint-config-google": "^0.14.0",
-    "nodemon": "^3.1.9"
+    "globals": "^16.0.0",
+    "nodemon": "^3.1.9",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.1"
   }
 }
