@@ -1,5 +1,9 @@
 {
-    "extends": "google",
+    "env": {
+      "es2021": true,
+      "node": true
+    },
+    "extends": "eslint:recommended",
     "rules": {
       "object-curly-spacing": 0,
       "new-cap": 0,
