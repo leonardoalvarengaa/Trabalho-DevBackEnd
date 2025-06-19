@@ -1,43 +1,40 @@
-const db = require("../configs/database");
+const pool = require('../configs/database');
 
-// Buscar todos os produtos
-async function getProdutos() {
-    const [rows] = await db.query("SELECT * FROM produtos");
+exports.getProdutos = async () => {
+    const [rows] = await pool.execute('SELECT * FROM produtos');
     return rows;
-}
+};
 
-// Buscar um produto por ID
-async function getProdutoById(id) {
-    const [rows] = await db.query("SELECT * FROM produtos WHERE id = ?", [id]);
+exports.getProdutoById = async (id) => {
+    const [rows] = await pool.execute('SELECT * FROM produtos WHERE id = ?', [id]);
     return rows[0];
-}
+};
 
-// Criar um novo produto
-async function createProduto(nome, descricao, preco) {
-    const [result] = await db.query(
-        "INSERT INTO produtos (nome, descricao, preco) VALUES (?, ?, ?)",
+exports.createProduto = async (nome, descricao, preco) => {
+    const [result] = await pool.execute(
+        'INSERT INTO produtos (nome, descricao, preco) VALUES (?, ?, ?)',
         [nome, descricao, preco]
     );
     return result.insertId;
-}
+};
 
-// Atualizar um produto
-async function updateProduto(id, nome, descricao, preco) {
-    await db.query(
-        "UPDATE produtos SET nome = ?, descricao = ?, preco = ?, data_atualizado = NOW() WHERE id = ?",
+exports.updateProduto = async (id, nome, descricao, preco) => {
+    const [rows] = await pool.execute('SELECT * FROM produtos WHERE id = ?', [id]);
+    if (rows.length === 0) {
+        throw new Error('Produto não encontrado para atualização.');
+    }
+
+    await pool.execute(
+        'UPDATE produtos SET nome = ?, descricao = ?, preco = ? WHERE id = ?',
         [nome, descricao, preco, id]
     );
-}
 
-// Excluir um produto
-async function deleteProduto(id) {
-    await db.query("DELETE FROM produtos WHERE id = ?", [id]);
-}
+    return { id: parseInt(id), nome, descricao, preco };
+};
 
-module.exports = {
-    getProdutos,
-    getProdutoById,
-    createProduto,
-    updateProduto,
-    deleteProduto,
+exports.deleteProduto = async (id) => {
+    const [result] = await pool.execute('DELETE FROM produtos WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+        throw new Error('Produto não encontrado.');
+    }
 };
