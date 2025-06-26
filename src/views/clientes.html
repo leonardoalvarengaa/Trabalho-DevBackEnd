@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Gerenciamento de Clientes</title>
+  <style>
+    body {
+      font-family: 'Work Sans', sans-serif;
+      margin: 20px;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    h2 {
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    button {
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 4px;
+      border: none;
+    }
+    .delete {
+      background: red;
+      color: white;
+    }
+    .edit {
+      background: orange;
+      color: white;
+    }
+    nav {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    nav a {
+      margin: 0 15px;
+      text-decoration: none;
+      color: #007bff;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    #logoutButton {
+        background-color: #dc3545;
+        color: white;
+        margin-left: 15px;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">Página Inicial</a>
+    <a href="/produtos.html">Listar Produtos</a>
+    <button id="logoutButton">Logout</button>
+  </nav>
+
+  <h2>Cadastro de Clientes</h2>
+  <form id="clienteForm">
+    <input type="text" id="nome" placeholder="Nome" required />
+    <input type="text" id="sobrenome" placeholder="Sobrenome" required />
+    <input type="email" id="email" placeholder="E-mail" required />
+    <input type="number" id="idade" placeholder="Idade" required />
+    <button type="submit">Adicionar Cliente</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Sobrenome</th>
+        <th>Email</th>
+        <th>Idade</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="clientesTabela"></tbody>
+  </table>
+
+  <script>
+    const API_URL = "http://localhost:3000"; // Ajuste para a porta da sua API
+    let clienteEmEdicao = null;
+    let jwtToken = localStorage.getItem('jwtToken'); // Pega o token do localStorage
+
+    // Função para verificar autenticação e redirecionar
+    function checkAuth() {
+        if (!jwtToken) {
+            alert('Você precisa estar logado para acessar esta página.');
+            window.location.href = '/login.html'; // Redireciona para a página de login
+            return false;
+        }
+        return true;
+    }
+
+    // Adiciona listener para o botão de logout
+    document.getElementById('logoutButton').addEventListener('click', async () => {
+      if (jwtToken) {
+        try {
+          const response = await fetch(`${API_URL}/logout`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${jwtToken}`
+            }
+          });
+          if (response.ok) {
+            localStorage.removeItem('jwtToken');
+            jwtToken = null; // Limpa o token na variável
+            alert('Logout efetuado com sucesso!');
+            window.location.href = '/login.html'; // Redireciona para o login
+          } else {
+            alert('Erro ao efetuar logout.');
+          }
+        } catch (error) {
+          console.error('Erro de rede ou servidor:', error);
+          alert('Erro de conexão ao tentar logout.');
+        }
+      } else {
+        alert('Você não está logado.');
+        window.location.href = '/login.html';
+      }
+    });
+
+
+    async function carregarClientes() {
+      if (!checkAuth()) return; // Verifica autenticação antes de carregar
+
+      try {
+        const res = await fetch(`${API_URL}/clientes`, {
+          headers: { 'Authorization': `Bearer ${jwtToken}` } // Envia o token
+        });
+        
+        if (res.status === 401 || res.status === 403) {
+            alert('Sessão expirada ou não autorizada. Faça login novamente.');
+            localStorage.removeItem('jwtToken');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        const clientes = await res.json();
+        const tabela = document.getElementById('clientesTabela');
+        tabela.innerHTML = '';
+        if (Array.isArray(clientes)) { // Garante que é um array
+            clientes.forEach(cliente => adicionarLinha(cliente));
+        } else {
+            tabela.innerHTML = '<tr><td colspan="5">Nenhum cliente encontrado.</td></tr>';
+        }
+      } catch (error) {
+        console.error('Erro ao carregar clientes:', error);
+        document.getElementById('clientesTabela').innerHTML = '<tr><td colspan="5">Falha ao carregar clientes.</td></tr>';
+      }
+    }
+
+    function adicionarLinha(cliente) {
+      const tabela = document.getElementById('clientesTabela');
+      const linha = document.createElement('tr');
+      linha.innerHTML = `
+        <td>${cliente.nome}</td>
+        <td>${cliente.sobrenome}</td>
+        <td>${cliente.email}</td>
+        <td>${cliente.idade}</td>
+        <td>
+          <button class="edit" onclick="editarCliente(${cliente.id})">Editar</button>
+          <button class="delete" onclick="deletarCliente(${cliente.id})">Excluir</button>
+        </td>
+      `;
+      tabela.appendChild(linha);
+    }
+
+    document.getElementById('clienteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await adicionarClienteForm(); // Renomeado para evitar conflito
+    });
+
+    async function adicionarClienteForm() { // Renomeado
+      if (!checkAuth()) return;
+
+      const nome = document.getElementById("nome").value.trim();
+      const sobrenome = document.getElementById("sobrenome").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const idade = parseInt(document.getElementById("idade").value);
+
+      if (!nome || !sobrenome || !email || isNaN(idade)) {
+        alert("Todos os campos são obrigatórios.");
+        return;
+      }
+
+      if (idade <= 0 || idade > 100) { // Validações básicas de idade (ajuste conforme Joi)
+        alert("Idade deve ser maior que 0 e menor ou igual a 100.");
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert("Email inválido.");
+        return;
+      }
+
+      const cliente = { nome, sobrenome, email, idade };
+      let url = `${API_URL}/clientes`;
+      let method = "POST";
+
+      if (clienteEmEdicao) {
+        url += `/${clienteEmEdicao}`;
+        method = "PUT";
+      }
+
+      try {
+        const response = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            'Authorization': `Bearer ${jwtToken}` // Envia o token
+          },
+          body: JSON.stringify(cliente),
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            alert('Sessão expirada ou não autorizada. Faça login novamente.');
+            localStorage.removeItem('jwtToken');
+            window.location.href = '/login.html';
+            return;
+        }
+
+        if (response.ok) {
+          alert(clienteEmEdicao ? "Cliente atualizado!" : "Cliente adicionado!");
+          clienteEmEdicao = null;
+          document.querySelector('#clienteForm button').innerText = "Adicionar Cliente";
+          document.getElementById('clienteForm').reset();
+          carregarClientes();
+        } else {
+            const errorData = await response.json();
+            alert(`Erro ao salvar cliente: ${errorData.error || response.statusText}`);
+        }
+      } catch (error) {
+        console.error("Erro de rede ou servidor ao salvar cliente:", error);
+        alert("Erro de conexão com o servidor ao salvar cliente!");
+      }
+    }
+
+    async function editarCliente(id) {
+      if (!checkAuth()) return;
+
+      try {
+        const res = await fetch(`${API_URL}/clientes/${id}`, {
+          headers: { 'Authorization': `Bearer ${jwtToken}` }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+            alert('Sessão expirada ou não autorizada. Faça login novamente.');
+            localStorage.removeItem('jwtToken');
+            window.location.href = '/login.html';
+            return;
+        }
+        if (res.status === 404) {
+            alert('Cliente não encontrado para edição.');
+            carregarClientes();
+            return;
+        }
+
+        const cliente = await res.json();
+        
+        document.getElementById("nome").value = cliente.nome;
+        document.getElementById("sobrenome").value = cliente.sobrenome;
+        document.getElementById("email").value = cliente.email;
+        document.getElementById("idade").value = cliente.idade;
+        clienteEmEdicao = id;
+        document.querySelector('#clienteForm button').innerText = "Salvar Alterações";
+      } catch (error) {
+        console.error("Erro de rede ou servidor ao buscar cliente para edição:", error);
+        alert("Erro de conexão com o servidor ao buscar cliente para edição!");
+      }
+    }
+
+    async function deletarCliente(id) {
+      if (!checkAuth()) return;
+
+      const confirmacao = confirm("Tem certeza que deseja excluir este cliente?");
+      if (!confirmacao) return;
+
+      try {
+        const response = await fetch(`${API_URL}/clientes/${id}`, {
+          method: "DELETE",
+          headers: { 'Authorization': `Bearer ${jwtToken}` }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            alert('Sessão expirada ou não autorizada. Faça login novamente.');
+            localStorage.removeItem('jwtToken');
+            window.location.href = '/login.html';
+            return;
+        }
+        if (response.status === 404) {
+            alert('Cliente não encontrado para exclusão.');
+        }
+        if (response.ok || response.status === 204) { // 204 No Content para DELETE bem-sucedido
+            alert("Cliente excluído com sucesso!");
+            carregarClientes();
+        } else {
+            const errorData = await response.json();
+            alert(`Erro ao excluir cliente: ${errorData.error || response.statusText}`);
+        }
+      } catch (error) {
+        console.error("Erro de rede ou servidor ao deletar cliente:", error);
+        alert("Erro de conexão com o servidor ao deletar cliente!");
+      }
+    }
+
+    // Inicializa a verificação de autenticação e carrega os clientes se logado
+    if (checkAuth()) {
+        carregarClientes();
+    }
+  </script>
+</body>
+</html>

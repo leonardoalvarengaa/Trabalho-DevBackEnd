@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login na API</title>
+  <style>
+    body {
+      font-family: 'Work Sans', sans-serif;
+      margin: 20px;
+      padding: 20px;
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 80vh;
+    }
+    .login-container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      width: 300px;
+      text-align: center;
+    }
+    input {
+      width: calc(100% - 20px);
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .message {
+      margin-top: 15px;
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input type="text" id="usuario" placeholder="Usuário" required />
+      <input type="password" id="senha" placeholder="Senha" required />
+      <button type="submit">Entrar</button>
+      <p id="loginMessage" class="message"></p>
+    </form>
+    <p>Não tem uma conta? Peça para o administrador criar.</p>
+    <p><a href="/">Voltar à Página Inicial</a></p>
+  </div>
+
+  <script>
+    const API_URL = "http://localhost:3000"; // Ajuste para a porta da sua API
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const usuario = document.getElementById('usuario').value;
+      const senha = document.getElementById('senha').value;
+      const loginMessage = document.getElementById('loginMessage');
+
+      try {
+        const response = await fetch(`${API_URL}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario, senha })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          localStorage.setItem('jwtToken', data.token); // Salva o token
+          alert('Login bem-sucedido!');
+          window.location.href = '/clientes.html'; // Redireciona para a página de clientes
+        } else {
+          loginMessage.textContent = data.message || 'Erro no login.';
+        }
+      } catch (error) {
+        console.error('Erro de rede ou servidor:', error);
+        loginMessage.textContent = 'Erro de conexão com o servidor.';
+      }
+    });
+  </script>
+</body>
+</html>
